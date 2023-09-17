@@ -3,8 +3,10 @@ Scrapes the most important variables to get a better understanding of the curren
 
 ## How to use:
 Step 1: make a venv and install scrapy
+
 step 2: Go to settings.py and set your USER_AGENT. You can also set Concurrent requests and download delay according to     
         your preference.
+
 step 3: run: if you want to run for sold homes in utrecht and for 250 pages on funda: 
                 [scrapy crawl spider_sold_houses -o Utrecht_sold_houses.csv].
              if you want to run for a different city and different amount of pages (to test)
