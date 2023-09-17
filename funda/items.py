@@ -1,16 +1,35 @@
 import scrapy
 
-class FundaItem(scrapy.Item):
+
+class FundaItems(scrapy.Item):
     url = scrapy.Field()
     title = scrapy.Field()
-    address = scrapy.Field()
     postal_code = scrapy.Field()
-    price = scrapy.Field()              # Listing price ("Vraagprijs")
-    year_built = scrapy.Field()         # Year built ("Bouwjaar")
-    area = scrapy.Field()               # Built area ("Woonoppervlakte")
-    rooms = scrapy.Field()              # Number of rooms
-    bedrooms = scrapy.Field()           # Number of bedrooms
-    property_type = scrapy.Field()      # House or apartment
-    city = scrapy.Field()
-    posting_date = scrapy.Field()
-    sale_date = scrapy.Field()
+    neighborhood = scrapy.Field()
+    Oppervlakte = scrapy.Field()
+    price = scrapy.Field()
+    prijs_m2 = scrapy.Field()
+    Soort_appartement = scrapy.Field()
+    Laatste_vraagpijs = scrapy.Field()
+    Aangeboden_sinds = scrapy.Field()
+    Soort_bouw = scrapy.Field()
+    Status = scrapy.Field()
+    Inhoud = scrapy.Field()
+    Bouwjaar = scrapy.Field()
+    Aantal_kamers = scrapy.Field()
+    Aantal_badkamers = scrapy.Field()
+    Aantal_woonlagen = scrapy.Field()
+    Verkoopdatum = scrapy.Field()
+    Looptijd = scrapy.Field()
+    Gebouwgebonden_buitenruimte = scrapy.Field()
+    Externe_bergruimte = scrapy.Field()
+    Energielabel = scrapy.Field()
+    Isolatie = scrapy.Field()
+    Verwarming = scrapy.Field()
+    Warm_water = scrapy.Field()
+    Eigendomssituatie = scrapy.Field()
+    Ligging = scrapy.Field()
+    Balkon_dakterras = scrapy.Field()
+    Schuur_berging = scrapy.Field()
+    Bijdrage_VvE = scrapy.Field()
+    Soort_parkeergelegenheid = scrapy.Field()

@@ -1,70 +1,148 @@
 import re
 import scrapy
-from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors import LinkExtractor
-from funda.items import FundaItem
+from funda.items import FundaItems
 
-class FundaSoldSpider(CrawlSpider):
 
-    name = "funda_spider_sold"
+class FundaSoldSpider(scrapy.Spider):
+    name = "spider_sold_houses"
     allowed_domains = ["funda.nl"]
 
-    def __init__(self, place='amsterdam'):
-        self.start_urls = ["http://www.funda.nl/koop/verkocht/%s/p%s/" % (place, page_number) for page_number in range(1,1001)]
-        # self.start_urls = ["http://www.funda.nl/koop/verkocht/%s/p1/" % place]  # For testing, extract just from one page
-        self.base_url = "http://www.funda.nl/koop/verkocht/%s/" % place
-        self.le1 = LinkExtractor(allow=r'%s+(huis|appartement)-\d{8}' % self.base_url)
-        self.le2 = LinkExtractor(allow=r'%s+(huis|appartement)-\d{8}.*/kenmerken/' % self.base_url)
+    def __init__(self, place="utrecht", page_numbers=250):
+        self.page_numbers = int(page_numbers)
+        self.start_urls = [
+            f"https://www.funda.nl/zoeken/koop?selected_area=%5B%22{place}%22%5D&availability=%5B%22unavailable%22%5D&search_result={page_number}"
+            for page_number in range(1, self.page_numbers)
+        ]
+        self.base_url = f"https://www.funda.nl/koop/{place}/"
+        self.le1 = LinkExtractor(allow=r"%s+(huis|appartement)-\d{8}" % self.base_url)
 
     def parse(self, response):
         links = self.le1.extract_links(response)
-        slash_count = self.base_url.count('/')+1        # Controls the depth of the links to be scraped
+
         for link in links:
-            if link.url.count('/') == slash_count and link.url.endswith('/'):
-                item = FundaItem()
-                item['url'] = link.url
-                if re.search(r'/appartement-',link.url):
-                    item['property_type'] = "apartment"
-                elif re.search(r'/huis-',link.url):
-                    item['property_type'] = "house"
-                yield scrapy.Request(link.url, callback=self.parse_dir_contents, meta={'item': item})
+            item = FundaItems()
+            item["url"] = link.url
+            yield scrapy.Request(link.url, callback=self.get_items, meta={"item": item})
 
-    def parse_dir_contents(self, response):
-        new_item = response.request.meta['item']
-        title = response.xpath('//title/text()').extract()[0]
-        postal_code = re.search(r'\d{4} [A-Z]{2}', title).group(0)
-        address = response.xpath('//h1/text()').extract()[0].strip()
-        price_span = response.xpath("//span[contains(@class, 'price-wrapper' )]/span[contains(@class, 'price' )]/text()").extract()[0]
-        price = re.findall(r'\d+.\d+',price_span)[0].replace('.','')
-        posting_date = response.xpath("//span[contains(@class, 'transaction-date') and contains(.,'Aangeboden sinds')]/strong/text()").extract()[0]
-        sale_date = response.xpath("//span[contains(@class, 'transaction-date') and contains(.,'Verkoopdatum')]/strong/text()").extract()[0]
+    def get_items(self, response):
+        new_item = response.request.meta["item"]
+        title = response.xpath("//title/text()").extract()[0]
+        postal_code = re.search(r"\d{4} [A-Z]{2}", title).group(0)
+        neighborhood = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/header/div/div/div[2]/div[1]/h1/span[2]/a/text()'
+        ).get()
+        Oppervlakte = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/header/div/div/div[2]/div[1]/section/ul/li[1]/span[2]/text()'
+        ).get()
+        price = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/header/div/div/div[3]/div/strong/text()'
+        ).get()
+        prijs_m2 = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[1]/dd[2]/text()'
+        ).get()
+        Soort_appartement = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[2]/dd[1]/span/text()'
+        ).get()
+        Laatste_vraagpijs = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[1]/dd[1]/span[1]/text()'
+        ).get()
+        Aangeboden_sinds = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[1]/div/dl/dd[1]/text()'
+        ).get()
+        Soort_bouw = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[2]/dd[2]/span/text()'
+        ).get()
+        Status = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[1]/dd[3]/span/text()'
+        ).get()
+        Inhoud = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[3]/dd[3]/span/text()'
+        ).get()
+        Bouwjaar = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[2]/dd[3]/span[1]/text()'
+        ).get()
+        Aantal_kamers = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[4]/dd[1]/span/text()'
+        ).get()
+        Aantal_badkamers = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[4]/dd[2]/span/text()'
+        ).get()
+        Aantal_woonlagen = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[4]/dd[3]/span/text()'
+        ).get()
+        Verkoopdatum = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[1]/div/dl/dd[2]/text()'
+        ).get()
+        Looptijd = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[1]/div/dl/dd[3]/text()'
+        ).get()
+        Gebouwgebonden_buitenruimte = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[3]/dd[2]/dl/dd[2]/span/text()'
+        ).get()
+        Externe_bergruimte = response.xpath(
+            '//*[@id="content"]/div[2]/div[2]/div[1]/section[4]/div/dl[3]/dd[2]/dl/dd[3]/span/text()'
+        ).get()
+        Energielabel = response.xpath(
+            '//*[@id="content"]/div[2]/div[2]/div[1]/section[4]/div/dl[5]/dd[1]/span/text()'
+        ).get()
+        Isolatie = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[5]/dd[2]/span/text()'
+        ).get()
+        Verwarming = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[5]/dd[3]/span/text()'
+        ).get()
+        Warm_water = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[5]/dd[4]/span/text()'
+        ).get()
+        Eigendomssituatie = response.xpath(
+            '//*[@id="content"]/div[2]/div[2]/div[1]/section[4]/div/dl[6]/dd[2]/dl/dd[1]/span/text()'
+        ).get()
+        Ligging = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[6]/dd[1]/span/text()'
+        ).get()
+        Balkon_dakterras = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[6]/dd[2]/span/text()'
+        ).get()
+        Schuur_berging = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[7]/dd/span/text()'
+        ).get()
+        Bijdrage_VvE = response.xpath(
+            '//*[@id="content"]/div[2]/div[2]/div[1]/section[4]/div/dl[1]/dd[6]/span/text()'
+        ).get()
+        Soort_parkeergelegenheid = response.xpath(
+            '//*[@id="content"]/div/div[2]/div[1]/section[5]/div/dl[8]/dd/span/text()'
+        ).get()
 
-        new_item['postal_code'] = postal_code
-        new_item['address'] = address
-        new_item['price'] = price
-        new_item['posting_date'] = posting_date
-        new_item['sale_date'] = sale_date
-
-        links = self.le2.extract_links(response)
-        slash_count = self.base_url.count('/') + 2
-        proper_links = filter(lambda link: link.url.count('/')==slash_count and link.url.endswith('/'), links)
-
-        yield scrapy.Request(proper_links[0].url, callback=self.parse_details, meta={'item': new_item})
-
-    def parse_details(self, response):
-        new_item = response.request.meta['item']
-
-        year_built_td = response.xpath("//th[contains(.,'Bouwjaar')]/following-sibling::td[1]/span/text()").extract()[0]
-        year_built = re.findall(r'\d{4}',year_built_td)[0]
-        area_td = response.xpath("//th[contains(.,'woonoppervlakte')]/following-sibling::td[1]/span/text()").extract()[0]
-        area = re.findall(r'\d+',area_td)[0]
-        rooms_td = response.xpath("//th[contains(.,'Aantal kamers')]/following-sibling::td[1]/span/text()").extract()[0]
-        rooms = re.findall('\d+ kamer',rooms_td)[0].replace(' kamer','')
-        bedrooms = re.findall('\d+ slaapkamer',rooms_td)[0].replace(' slaapkamer','')
-
-        new_item['year_built'] = year_built
-        new_item['area'] = area
-        new_item['rooms'] = rooms
-        new_item['bedrooms'] = bedrooms
+        new_item["title"] = title
+        new_item["postal_code"] = postal_code
+        new_item["neighborhood"] = neighborhood
+        new_item["Oppervlakte"] = Oppervlakte
+        new_item["price"] = price
+        new_item["prijs_m2"] = prijs_m2
+        new_item["Soort_appartement"] = Soort_appartement
+        new_item["Laatste_vraagpijs"] = Laatste_vraagpijs
+        new_item["Aangeboden_sinds"] = Aangeboden_sinds
+        new_item["Soort_bouw"] = Soort_bouw
+        new_item["Status"] = Status
+        new_item["Inhoud"] = Inhoud
+        new_item["Bouwjaar"] = Bouwjaar
+        new_item["Aantal_kamers"] = Aantal_kamers
+        new_item["Aantal_badkamers"] = Aantal_badkamers
+        new_item["Aantal_woonlagen"] = Aantal_woonlagen
+        new_item["Verkoopdatum"] = Verkoopdatum
+        new_item["Looptijd"] = Looptijd
+        new_item["Gebouwgebonden_buitenruimte"] = Gebouwgebonden_buitenruimte
+        new_item["Externe_bergruimte"] = Externe_bergruimte
+        new_item["Energielabel"] = Energielabel
+        new_item["Isolatie"] = Isolatie
+        new_item["Verwarming"] = Verwarming
+        new_item["Warm_water"] = Warm_water
+        new_item["Eigendomssituatie"] = Eigendomssituatie
+        new_item["Ligging"] = Ligging
+        new_item["Balkon_dakterras"] = Balkon_dakterras
+        new_item["Schuur_berging"] = Schuur_berging
+        new_item["Bijdrage_VvE"] = Bijdrage_VvE
+        new_item["Soort_parkeergelegenheid"] = Soort_parkeergelegenheid
 
         yield new_item
